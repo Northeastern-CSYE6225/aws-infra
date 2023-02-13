@@ -42,10 +42,10 @@ resource "aws_route_table" "private-route-table" {
 
 # Create 3 public subnets, each in different availability zones in the same region as the VPC
 resource "aws_subnet" "public-subnet" {
-  count             = length(var.public_subnet_cidr_blocks)
+  count             = length(var.public_subnets)
   vpc_id            = aws_vpc.assignment3.id
-  cidr_block        = var.public_subnet_cidr_blocks[count.index]
-  availability_zone = var.az[count.index]
+  cidr_block        = var.public_subnets[count.index].cidr
+  availability_zone = var.public_subnets[count.index].az
 
   tags = {
     Name = "public-subnet-${count.index}"
@@ -53,16 +53,16 @@ resource "aws_subnet" "public-subnet" {
 }
 
 resource "aws_route_table_association" "public-subnet-rta" {
-  count          = length(var.public_subnet_cidr_blocks)
+  count          = length(var.public_subnets)
   subnet_id      = aws_subnet.public-subnet[count.index].id
   route_table_id = aws_route_table.public-route-table.id
 }
 
 # Create 3 private subnets, each in different availability zones in the same region as the VPC
 resource "aws_subnet" "private-subnet" {
-  count             = length(var.private_subnet_cidr_blocks)
+  count             = length(var.private_subnets)
   vpc_id            = aws_vpc.assignment3.id
-  cidr_block        = var.private_subnet_cidr_blocks[count.index]
+  cidr_block        = var.private_subnets[count.index]
   availability_zone = var.az[count.index]
 
   tags = {
@@ -71,7 +71,7 @@ resource "aws_subnet" "private-subnet" {
 }
 
 resource "aws_route_table_association" "private-subnet-rta" {
-  count          = length(var.private_subnet_cidr_blocks)
+  count          = length(var.private_subnets)
   subnet_id      = aws_subnet.private-subnet[count.index].id
   route_table_id = aws_route_table.private-route-table.id
 }

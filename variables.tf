@@ -22,23 +22,14 @@ variable "private_route_table_cidr_block" {
   type        = string
 }
 
-variable "az" {
-  description = "Availability Zones"
-  default     = ["us-east-1a", "us-east-1b", "us-east-1c"]
-  type        = list(string)
-
+variable "public_subnets" {
+  description = "Public subnet CIDR blocks and availability zones"
+  type        = list(object({ cidr : string, az : string }))
 }
 
-variable "public_subnet_cidr_blocks" {
-  description = "Public subnet CIDR blocks"
-  default     = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
-  type        = list(string)
-}
-
-variable "private_subnet_cidr_blocks" {
-  description = "Private subnet CIDR blocks"
-  default     = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
-  type        = list(string)
+variable "private_subnets" {
+  description = "Private subnet CIDR blocks and availability zones"
+  type        = list(object({ cidr : string, az : string }))
 }
 
 # variable "vpcs" {

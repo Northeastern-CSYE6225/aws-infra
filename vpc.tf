@@ -39,3 +39,39 @@ resource "aws_route_table" "private-route-table" {
     Name = "private"
   }
 }
+
+# Create 3 public subnets, each in different availability zones in the same region as the VPC
+resource "aws_subnet" "public-subnet" {
+  count             = length(var.public_subnet_cidr_blocks)
+  vpc_id            = aws_vpc.assignment3.id
+  cidr_block        = var.public_subnet_cidr_blocks[count.index]
+  availability_zone = var.az[count.index]
+
+  tags = {
+    Name = "public-subnet-${count.index}"
+  }
+}
+
+resource "aws_route_table_association" "public-subnet-rta" {
+  count          = length(var.public_subnet_cidr_blocks)
+  subnet_id      = aws_subnet.public-subnet[count.index].id
+  route_table_id = aws_route_table.public-route-table.id
+}
+
+# Create 3 private subnets, each in different availability zones in the same region as the VPC
+resource "aws_subnet" "private-subnet" {
+  count             = length(var.private_subnet_cidr_blocks)
+  vpc_id            = aws_vpc.assignment3.id
+  cidr_block        = var.private_subnet_cidr_blocks[count.index]
+  availability_zone = var.az[count.index]
+
+  tags = {
+    Name = "private-subnet-${count.index}"
+  }
+}
+
+resource "aws_route_table_association" "private-subnet-rta" {
+  count          = length(var.private_subnet_cidr_blocks)
+  subnet_id      = aws_subnet.private-subnet[count.index].id
+  route_table_id = aws_route_table.private-route-table.id
+}

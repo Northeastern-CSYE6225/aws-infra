@@ -6,3 +6,8 @@ resource "aws_vpc" "assignment3" {
     Name = "assignment3"
   }
 }
+
+# Create an Internet Gateway and attach it to the VPC
+resource "aws_internet_gateway" "gw" {
+  vpc_id = aws_vpc.assignment3.id
+}

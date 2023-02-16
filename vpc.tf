@@ -1,9 +1,14 @@
+data "aws_availability_zones" "available" {
+  state = var.az_state
+}
+
+
 # Create VPC
 resource "aws_vpc" "assignment3" {
   cidr_block = var.vpc_cidr_block
 
   tags = {
-    Name = "assignment3"
+    Name = var.vpc_name
   }
 }
 
@@ -44,9 +49,8 @@ resource "aws_route_table" "private-route-table" {
 resource "aws_subnet" "public-subnet" {
   count             = length(var.public_subnets)
   vpc_id            = aws_vpc.assignment3.id
-  cidr_block        = var.public_subnets[count.index].cidr
-  availability_zone = var.public_subnets[count.index].az
-
+  cidr_block        = var.public_subnets[count.index]
+  availability_zone = data.aws_availability_zones.available.names[count.index]
   tags = {
     Name = "public-subnet-${count.index}"
   }
@@ -62,8 +66,8 @@ resource "aws_route_table_association" "public-subnet-rta" {
 resource "aws_subnet" "private-subnet" {
   count             = length(var.private_subnets)
   vpc_id            = aws_vpc.assignment3.id
-  cidr_block        = var.private_subnets[count.index].cidr
-  availability_zone = var.private_subnets[count.index].az
+  cidr_block        = var.private_subnets[count.index]
+  availability_zone = data.aws_availability_zones.available.names[count.index]
 
   tags = {
     Name = "private-subnet-${count.index}"

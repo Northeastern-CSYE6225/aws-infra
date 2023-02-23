@@ -1,8 +1,9 @@
 region                         = ""
 vpc_name                       = ""
 vpc_cidr_block                 = ""
-public_route_table_cidr_block  = ""
 private_route_table_cidr_block = ""
-public_subnets                 = [{ cidr : "", az : "" }]
-private_subnets                = [{ cidr : "", az : "" }]
+public_route_table_cidr_block  = ""
 az_state                       = ""
+public_subnets                 = [""]
+private_subnets                = [""]
+public_key                     = ""

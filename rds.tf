@@ -12,7 +12,7 @@ resource "aws_db_instance" "database" {
   instance_class         = "db.t3.micro"
   username               = "csye6225"
   password               = random_password.password.result
-  parameter_group_name   = "default.mysql5.7"
+  parameter_group_name   = aws_db_parameter_group.mysql57_pg.name
   skip_final_snapshot    = true
   multi_az               = false
   vpc_security_group_ids = [aws_security_group.database_sg.id]
@@ -52,4 +52,9 @@ resource "aws_db_subnet_group" "database" {
   tags = {
     Name = "database subnet group"
   }
+}
+
+resource "aws_db_parameter_group" "mysql57_pg" {
+  name   = "webapp-database-pg"
+  family = "mysql5.7"
 }

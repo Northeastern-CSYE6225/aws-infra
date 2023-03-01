@@ -112,7 +112,7 @@ EOF
 }
 
 resource "aws_iam_policy" "webapp_s3_policy" {
-  name        = "webapp_s3_policy"
+  name        = "WebAppS3"
   path        = "/"
   description = "Allow webapp s3 access"
 
@@ -135,10 +135,14 @@ resource "aws_iam_policy" "webapp_s3_policy" {
       }
     ]
   })
+
+  tags = {
+    Name = "WebAppS3"
+  }
 }
 
 resource "aws_iam_role" "webapp_s3_access_role" {
-  name = "webapp_s3_access_role"
+  name = "EC2-CSYE6225"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -153,6 +157,10 @@ resource "aws_iam_role" "webapp_s3_access_role" {
       },
     ]
   })
+
+  tags = {
+    Name = "EC2-CSYE6225"
+  }
 }
 
 resource "aws_iam_policy_attachment" "ec2_s3_policy_role" {

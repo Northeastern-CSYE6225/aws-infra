@@ -46,3 +46,7 @@ variable "profile" {
   description = "AWS profile"
   type        = string
 }
+
+variable "public_key" {
+  description = "EC2 key pair"
+}

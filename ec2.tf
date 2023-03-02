@@ -23,7 +23,7 @@ data "aws_ami" "webapp_ami" {
 resource "aws_security_group" "application_sg" {
   name        = "application"
   description = "Allow TLS inbound traffic"
-  vpc_id      = aws_vpc.assignment3.id
+  vpc_id      = aws_vpc.vpc.id
 
   ingress {
     description = "https from Anywhere"
@@ -31,7 +31,7 @@ resource "aws_security_group" "application_sg" {
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    # cidr_blocks      = [aws_vpc.assignment3.cidr_block]
+    # cidr_blocks      = [aws_vpc.vpc.cidr_block]
   }
 
   ingress {
@@ -71,7 +71,6 @@ resource "aws_security_group" "application_sg" {
 }
 
 resource "aws_key_pair" "deployer" {
-  key_name   = "aws-key"
   public_key = var.public_key
 }
 
@@ -83,6 +82,7 @@ resource "aws_instance" "webapp" {
   subnet_id                   = aws_subnet.public-subnet[0].id
   disable_api_termination     = false
   key_name                    = aws_key_pair.deployer.key_name
+  iam_instance_profile        = aws_iam_instance_profile.ec2_s3_profile.name
 
   root_block_device {
     delete_on_termination = true
@@ -90,7 +90,85 @@ resource "aws_instance" "webapp" {
     volume_type           = "gp2"
   }
 
+  user_data = <<EOF
+#!/bin/bash
+cd /home/ec2-user/webapp/
+touch .env
+echo "API_PORT=3000" >> .env
+echo "DB_HOST=${aws_db_instance.database.address}" >> .env
+echo "DB_DATABASE=${aws_db_instance.database.db_name}" >> .env
+echo "DB_USER=${aws_db_instance.database.username}" >> .env
+echo "DB_PASSWORD=${aws_db_instance.database.password}" >> .env
+echo "AWS_REGION=${var.region}" >> .env
+echo "AWS_S3_BUCKET_NAME=${aws_s3_bucket.bucket.bucket}" >> .env
+sudo systemctl enable webapp.service
+sudo systemctl start webapp.service
+EOF
+
   tags = {
     Name = "webapp"
   }
+}
+
+resource "aws_iam_policy" "webapp_s3_policy" {
+  name        = "WebAppS3"
+  path        = "/"
+  description = "Allow webapp s3 access"
+
+  # Terraform's "jsonencode" function converts a
+  # Terraform expression result to valid JSON syntax.
+  policy = jsonencode({
+    Version : "2012-10-17",
+    Statement : [
+      {
+        "Action" : [
+          "s3:DeleteObject",
+          "s3:GetObject",
+          "s3:PutObject"
+        ],
+        "Effect" : "Allow",
+        "Resource" : [
+          "arn:aws:s3:::${aws_s3_bucket.bucket.bucket}",
+          "arn:aws:s3:::${aws_s3_bucket.bucket.bucket}/*"
+        ]
+      }
+    ]
+  })
+
+  tags = {
+    Name = "WebAppS3"
+  }
+}
+
+resource "aws_iam_role" "webapp_s3_access_role" {
+  name = "EC2-CSYE6225"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      },
+    ]
+  })
+
+  tags = {
+    Name = "EC2-CSYE6225"
+  }
+}
+
+resource "aws_iam_policy_attachment" "ec2_s3_policy_role" {
+  name       = "webapp_s3_attachment"
+  roles      = [aws_iam_role.webapp_s3_access_role.name]
+  policy_arn = aws_iam_policy.webapp_s3_policy.arn
+}
+
+resource "aws_iam_instance_profile" "ec2_s3_profile" {
+  name = "webapp_s3_profile"
+  role = aws_iam_role.webapp_s3_access_role.name
 }

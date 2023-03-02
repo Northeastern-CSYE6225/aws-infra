@@ -4,7 +4,7 @@ data "aws_availability_zones" "available" {
 
 
 # Create VPC
-resource "aws_vpc" "assignment3" {
+resource "aws_vpc" "vpc" {
   cidr_block = var.vpc_cidr_block
 
   tags = {
@@ -14,12 +14,12 @@ resource "aws_vpc" "assignment3" {
 
 # Create an Internet Gateway and attach it to the VPC
 resource "aws_internet_gateway" "gw" {
-  vpc_id = aws_vpc.assignment3.id
+  vpc_id = aws_vpc.vpc.id
 }
 
 # Create a public route table. Attach all public subnets to this route table
 resource "aws_route_table" "public-route-table" {
-  vpc_id = aws_vpc.assignment3.id
+  vpc_id = aws_vpc.vpc.id
 
   route {
     cidr_block = var.public_route_table_cidr_block
@@ -33,7 +33,7 @@ resource "aws_route_table" "public-route-table" {
 
 # Create a private route table. Attach all private subnets to this route table
 resource "aws_route_table" "private-route-table" {
-  vpc_id = aws_vpc.assignment3.id
+  vpc_id = aws_vpc.vpc.id
 
   tags = {
     Name = "private"
@@ -43,7 +43,7 @@ resource "aws_route_table" "private-route-table" {
 # Create 3 public subnets, each in different availability zones in the same region as the VPC
 resource "aws_subnet" "public-subnet" {
   count             = length(var.public_subnets)
-  vpc_id            = aws_vpc.assignment3.id
+  vpc_id            = aws_vpc.vpc.id
   cidr_block        = var.public_subnets[count.index]
   availability_zone = data.aws_availability_zones.available.names[count.index]
   tags = {
@@ -60,7 +60,7 @@ resource "aws_route_table_association" "public-subnet-rta" {
 # Create 3 private subnets, each in different availability zones in the same region as the VPC
 resource "aws_subnet" "private-subnet" {
   count             = length(var.private_subnets)
-  vpc_id            = aws_vpc.assignment3.id
+  vpc_id            = aws_vpc.vpc.id
   cidr_block        = var.private_subnets[count.index]
   availability_zone = data.aws_availability_zones.available.names[count.index]
 

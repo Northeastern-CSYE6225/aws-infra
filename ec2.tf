@@ -101,7 +101,6 @@ echo "DB_USER=${aws_db_instance.database.username}" >> .env
 echo "DB_PASSWORD=${aws_db_instance.database.password}" >> .env
 echo "AWS_REGION=${var.region}" >> .env
 echo "AWS_S3_BUCKET_NAME=${aws_s3_bucket.bucket.bucket}" >> .env
-echo "MULTER_UPLOADS_DIR=/tmp/webapp-multer-uploads >> .env
 sudo systemctl enable webapp.service
 sudo systemctl start webapp.service
 EOF

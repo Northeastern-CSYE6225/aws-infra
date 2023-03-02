@@ -2,7 +2,8 @@ resource "random_uuid" "uuid" {
 }
 
 resource "aws_s3_bucket" "bucket" {
-  bucket = random_uuid.uuid.result
+  bucket        = random_uuid.uuid.result
+  force_destroy = true
 
   tags = {
     Name        = "CSYE 6225 webapp"
@@ -29,17 +30,12 @@ resource "aws_s3_bucket_lifecycle_configuration" "bucket_lifecycle_config" {
   }
 }
 
-resource "aws_kms_key" "bucket_key" {
-}
-
 resource "aws_s3_bucket_server_side_encryption_configuration" "s3_encryption" {
   bucket = aws_s3_bucket.bucket.id
 
   rule {
     apply_server_side_encryption_by_default {
-      kms_master_key_id = aws_kms_key.bucket_key.arn
-      sse_algorithm     = "aws:kms"
+      sse_algorithm = "AES256"
     }
   }
 }
-

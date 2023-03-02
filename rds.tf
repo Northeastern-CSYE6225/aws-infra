@@ -1,7 +1,6 @@
 resource "random_password" "password" {
-  length           = 16
-  special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
+  length  = 16
+  special = false
 }
 
 resource "aws_db_instance" "database" {
@@ -19,7 +18,6 @@ resource "aws_db_instance" "database" {
   db_subnet_group_name   = aws_db_subnet_group.database.id
 }
 
-
 resource "aws_security_group" "database_sg" {
   name        = "database"
   description = "Allow inbound traffic to 3306 from VPC"
@@ -33,12 +31,12 @@ resource "aws_security_group" "database_sg" {
     security_groups = [aws_security_group.application_sg.id]
   }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = -1
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  # egress {
+  #   from_port   = 0
+  #   to_port     = 0
+  #   protocol    = -1
+  #   cidr_blocks = ["0.0.0.0/0"]
+  # }
 
   tags = {
     Name = "database"

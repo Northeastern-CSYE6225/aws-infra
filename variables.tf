@@ -48,5 +48,6 @@ variable "profile" {
 }
 
 variable "public_key" {
-  description = "EC2 key pair"
+  description = "SSH public key"
+  type        = string
 }

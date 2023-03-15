@@ -51,3 +51,8 @@ variable "public_key" {
   description = "SSH public key"
   type        = string
 }
+
+variable "domain_name" {
+  description = "domain name for A record"
+  type        = string
+}

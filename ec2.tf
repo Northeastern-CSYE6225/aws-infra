@@ -140,7 +140,7 @@ resource "aws_iam_policy" "webapp_s3_policy" {
   }
 }
 
-resource "aws_iam_role" "webapp_s3_access_role" {
+resource "aws_iam_role" "webapp_ec2_access_role" {
   name = "EC2-CSYE6225"
 
   assume_role_policy = jsonencode({
@@ -162,13 +162,23 @@ resource "aws_iam_role" "webapp_s3_access_role" {
   }
 }
 
+data "aws_iam_policy" "webapp_cloudwatch_server_policy" {
+  arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
 resource "aws_iam_policy_attachment" "ec2_s3_policy_role" {
   name       = "webapp_s3_attachment"
-  roles      = [aws_iam_role.webapp_s3_access_role.name]
+  roles      = [aws_iam_role.webapp_ec2_access_role.name]
   policy_arn = aws_iam_policy.webapp_s3_policy.arn
+}
+
+resource "aws_iam_policy_attachment" "ec2_cloudwatch_policy_role" {
+  name       = "webapp_cloudwatch_policy"
+  roles      = [aws_iam_role.webapp_ec2_access_role.name]
+  policy_arn = data.aws_iam_policy.webapp_cloudwatch_server_policy.arn
 }
 
 resource "aws_iam_instance_profile" "ec2_s3_profile" {
   name = "webapp_s3_profile"
-  role = aws_iam_role.webapp_s3_access_role.name
+  role = aws_iam_role.webapp_ec2_access_role.name
 }

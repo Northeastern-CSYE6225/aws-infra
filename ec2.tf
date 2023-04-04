@@ -20,8 +20,25 @@ data "aws_ami" "webapp_ami" {
   }
 }
 
-resource "aws_security_group" "application_sg" {
-  name        = "application"
+data "template_file" "user_data" {
+  template = <<EOF
+#!/bin/bash
+cd /home/ec2-user/webapp/
+touch .env
+echo "API_PORT=3000" >> .env
+echo "DB_HOST=${aws_db_instance.database.address}" >> .env
+echo "DB_DATABASE=${aws_db_instance.database.db_name}" >> .env
+echo "DB_USER=${aws_db_instance.database.username}" >> .env
+echo "DB_PASSWORD=${aws_db_instance.database.password}" >> .env
+echo "AWS_REGION=${var.region}" >> .env
+echo "AWS_S3_BUCKET_NAME=${aws_s3_bucket.bucket.bucket}" >> .env
+sudo systemctl enable webapp.service
+sudo systemctl start webapp.service
+EOF
+}
+
+resource "aws_security_group" "webapp_sg" {
+  name        = "WebAppSecurityGroup"
   description = "Allow TLS inbound traffic"
   vpc_id      = aws_vpc.vpc.id
 
@@ -30,8 +47,7 @@ resource "aws_security_group" "application_sg" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    # cidr_blocks      = [aws_vpc.vpc.cidr_block]
+    cidr_blocks = [aws_security_group.lb_sg.id]
   }
 
   ingress {
@@ -39,7 +55,7 @@ resource "aws_security_group" "application_sg" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [aws_security_group.lb_sg.id]
   }
 
   ingress {
@@ -55,7 +71,7 @@ resource "aws_security_group" "application_sg" {
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [aws_security_group.lb_sg.id]
   }
 
   egress {
@@ -66,7 +82,7 @@ resource "aws_security_group" "application_sg" {
   }
 
   tags = {
-    Name = "application"
+    Name = "WebAppSecurityGroup"
   }
 }
 
@@ -74,40 +90,45 @@ resource "aws_key_pair" "deployer" {
   public_key = var.public_key
 }
 
-resource "aws_instance" "webapp" {
-  instance_type               = "t2.micro"
-  associate_public_ip_address = true
-  ami                         = data.aws_ami.webapp_ami.id
-  vpc_security_group_ids      = [aws_security_group.application_sg.id]
-  subnet_id                   = aws_subnet.public-subnet[0].id
-  disable_api_termination     = false
-  key_name                    = aws_key_pair.deployer.key_name
-  iam_instance_profile        = aws_iam_instance_profile.ec2_s3_profile.name
+resource "aws_launch_template" "lt" {
+  name                                 = "asg_launch_config"
+  image_id                             = data.aws_ami.webapp_ami.id
+  instance_initiated_shutdown_behavior = "terminate"
+  instance_type                        = "t2.micro"
+  key_name                             = "aws-dev"
 
-  root_block_device {
-    delete_on_termination = true
-    volume_size           = 50
-    volume_type           = "gp2"
+  iam_instance_profile {
+    name = aws_iam_instance_profile.ec2_s3_profile.name
   }
 
-  user_data = <<EOF
-#!/bin/bash
-cd /home/ec2-user/webapp/
-touch .env
-echo "API_PORT=3000" >> .env
-echo "DB_HOST=${aws_db_instance.database.address}" >> .env
-echo "DB_DATABASE=${aws_db_instance.database.db_name}" >> .env
-echo "DB_USER=${aws_db_instance.database.username}" >> .env
-echo "DB_PASSWORD=${aws_db_instance.database.password}" >> .env
-echo "AWS_REGION=${var.region}" >> .env
-echo "AWS_S3_BUCKET_NAME=${aws_s3_bucket.bucket.bucket}" >> .env
-sudo systemctl enable webapp.service
-sudo systemctl start webapp.service
-EOF
+  block_device_mappings {
+    device_name = "/dev/xvda"
 
-  tags = {
-    Name = "webapp"
+    ebs {
+      delete_on_termination = true
+      volume_size           = 50
+      volume_type           = "gp2"
+    }
   }
+
+  network_interfaces {
+    associate_public_ip_address = true
+    delete_on_termination       = true
+    # using vpc_security_group_ids instead
+    # security_groups = [aws_security_group.application_sg.id]
+  }
+
+  vpc_security_group_ids = [aws_security_group.webapp_sg.id]
+
+  tag_specifications {
+    resource_type = "instance"
+
+    tags = {
+      Name = "asg_launch_config"
+    }
+  }
+
+  user_data = base64encode(data.template_file.user_data.rendered)
 }
 
 resource "aws_iam_policy" "webapp_s3_policy" {

@@ -43,22 +43,6 @@ resource "aws_security_group" "webapp_sg" {
   vpc_id      = aws_vpc.vpc.id
 
   ingress {
-    description = "https from Anywhere"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = [aws_security_group.lb_sg.id]
-  }
-
-  ingress {
-    description = "http from anywhere"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = [aws_security_group.lb_sg.id]
-  }
-
-  ingress {
     description = "SSH from anywhere"
     from_port   = 22
     to_port     = 22
@@ -67,11 +51,11 @@ resource "aws_security_group" "webapp_sg" {
   }
 
   ingress {
-    description = "Custom port for webapp"
-    from_port   = 3000
-    to_port     = 3000
-    protocol    = "tcp"
-    cidr_blocks = [aws_security_group.lb_sg.id]
+    description     = "Custom port for webapp"
+    from_port       = 3000
+    to_port         = 3000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.lb_sg.id]
   }
 
   egress {
@@ -95,7 +79,8 @@ resource "aws_launch_template" "lt" {
   image_id                             = data.aws_ami.webapp_ami.id
   instance_initiated_shutdown_behavior = "terminate"
   instance_type                        = "t2.micro"
-  key_name                             = "aws-dev"
+  key_name                             = aws_key_pair.deployer.key_name
+  disable_api_termination              = false
 
   iam_instance_profile {
     name = aws_iam_instance_profile.ec2_s3_profile.name
@@ -115,10 +100,10 @@ resource "aws_launch_template" "lt" {
     associate_public_ip_address = true
     delete_on_termination       = true
     # using vpc_security_group_ids instead
-    # security_groups = [aws_security_group.application_sg.id]
+    security_groups = [aws_security_group.webapp_sg.id]
   }
 
-  vpc_security_group_ids = [aws_security_group.webapp_sg.id]
+  # vpc_security_group_ids = [aws_security_group.vpc.id]
 
   tag_specifications {
     resource_type = "instance"

@@ -55,9 +55,9 @@ resource "aws_lb" "lb" {
 
 resource "aws_lb_target_group" "alb_tg" {
   name        = "csye6225-lb-alb-tg"
-  port        = 80
+  port        = 3000
   protocol    = "HTTP"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = aws_vpc.vpc.id
   target_type = "instance"
 
   health_check {

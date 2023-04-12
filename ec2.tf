@@ -66,6 +66,83 @@ resource "aws_key_pair" "deployer" {
   public_key = var.public_key
 }
 
+resource "aws_kms_key" "ebs" {
+  description = "EBS KMS key"
+  policy = jsonencode({
+    "Id" : "key-for-ebs",
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Sid" : "Enable IAM User Permissions",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.id}:root"
+        },
+        "Action" : "kms:*",
+        "Resource" : "arn:aws:ec2:${var.region}:${data.aws_caller_identity.current.id}:volume/*"
+      },
+      {
+        "Sid" : "Allow access for Key Administrators",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.id}:root"
+        },
+        "Action" : [
+          "kms:Create*",
+          "kms:Describe*",
+          "kms:Enable*",
+          "kms:List*",
+          "kms:Put*",
+          "kms:Update*",
+          "kms:Revoke*",
+          "kms:Disable*",
+          "kms:Get*",
+          "kms:Delete*",
+          "kms:TagResource",
+          "kms:UntagResource",
+          "kms:ScheduleKeyDeletion",
+          "kms:CancelKeyDeletion"
+        ],
+        "Resource" : "arn:aws:ec2:${var.region}:${data.aws_caller_identity.current.id}:volume/*"
+      },
+      {
+        "Sid" : "Allow use of the key",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
+        },
+        "Action" : [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ],
+        "Resource" : "arn:aws:ec2:${var.region}:${data.aws_caller_identity.current.id}:volume/*",
+
+      },
+      {
+        "Sid" : "Allow attachment of persistent resources",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
+        },
+        "Action" : [
+          "kms:CreateGrant",
+          "kms:ListGrants",
+          "kms:RevokeGrant"
+        ],
+        "Resource" : "arn:aws:ec2:${var.region}:${data.aws_caller_identity.current.id}:volume/*",
+        "Condition" : {
+          "Bool" : {
+            "kms:GrantIsForAWSResource" : "true"
+          }
+        }
+      }
+    ]
+  })
+}
+
 resource "aws_launch_template" "lt" {
   name                                 = "asg_launch_config"
   image_id                             = data.aws_ami.webapp_ami.id
@@ -85,6 +162,8 @@ resource "aws_launch_template" "lt" {
       delete_on_termination = true
       volume_size           = 50
       volume_type           = "gp2"
+      encrypted             = true
+      kms_key_id            = aws_kms_key.ebs.arn
     }
   }
 

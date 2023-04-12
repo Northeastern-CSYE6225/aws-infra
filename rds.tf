@@ -3,6 +3,61 @@ resource "random_password" "password" {
   special = false
 }
 
+resource "aws_kms_key" "rds" {
+  description              = "RDS KMS key"
+  customer_master_key_spec = "SYMMETRIC_DEFAULT"
+  enable_key_rotation      = true
+  multi_region             = true
+  policy = jsonencode({
+    "Id" : "key-for-rds",
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Sid" : "Enable IAM User Permissions",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.id}:root"
+        },
+        "Action" : "kms:*",
+        "Resource" : "arn:aws:rds:${var.region}:${data.aws_caller_identity.current.id}:db/*"
+      },
+      {
+        "Sid" : "Allow use of the key",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.id}:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS"
+        },
+        "Action" : [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ],
+        "Resource" : "arn:aws:rds:${var.region}:${data.aws_caller_identity.current.id}:db/*"
+      },
+      {
+        "Sid" : "Allow attachment of persistent resources",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.id}:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS"
+        },
+        "Action" : [
+          "kms:CreateGrant",
+          "kms:ListGrants",
+          "kms:RevokeGrant"
+        ],
+        "Resource" : "arn:aws:rds:${var.region}:${data.aws_caller_identity.current.id}:db/*",
+        "Condition" : {
+          "Bool" : {
+            "kms:GrantIsForAWSResource" : "true"
+          }
+        }
+      }
+    ]
+  })
+}
+
 resource "aws_db_instance" "database" {
   allocated_storage      = 10
   db_name                = "csye6225"
@@ -16,6 +71,8 @@ resource "aws_db_instance" "database" {
   multi_az               = false
   vpc_security_group_ids = [aws_security_group.database_sg.id]
   db_subnet_group_name   = aws_db_subnet_group.database.id
+  storage_encrypted      = true
+  kms_key_id             = aws_kms_key.rds.arn
 }
 
 resource "aws_security_group" "database_sg" {

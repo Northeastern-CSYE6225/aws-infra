@@ -32,3 +32,11 @@ $ terraform apply -var-file <filename>.tfvars -var "profile=<aws-profile-name>"
 ```console
 $ terraform apply -var-file <filename>.tfvars -var "profile=<aws-profile-name>"
 ```
+
+7. Import SSL certificate to AWS Certificate Manager
+
+```console
+$ aws acm import-certificate --certificate fileb://Certificate.crt \
+      --certificate-chain fileb://certificate_bundle.crt \
+      --private-key fileb://private.key
+```

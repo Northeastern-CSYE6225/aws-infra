@@ -11,10 +11,19 @@ resource "aws_s3_bucket" "bucket" {
   }
 }
 
-resource "aws_s3_bucket_acl" "bucket_acl" {
-  bucket = aws_s3_bucket.bucket.id
-  acl    = "private"
-}
+# resource "aws_s3_bucket_acl" "bucket_acl" {
+#   bucket = aws_s3_bucket.bucket.id
+#   acl    = "private"
+# }
+
+# resource "aws_s3_bucket_ownership_controls" "bucket_acl_ownership" {
+#   bucket = aws_s3_bucket.bucket.id
+#   rule {
+#     object_ownership = "BucketOwnerEnforced"
+#   }
+#   # Add just this depends_on condition
+#   depends_on = [aws_s3_bucket_acl.bucket_acl]
+# }
 
 resource "aws_s3_bucket_lifecycle_configuration" "bucket_lifecycle_config" {
   bucket = aws_s3_bucket.bucket.id

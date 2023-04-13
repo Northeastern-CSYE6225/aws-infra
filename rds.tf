@@ -5,57 +5,62 @@ resource "random_password" "password" {
 
 resource "aws_kms_key" "rds" {
   description              = "RDS KMS key"
+  deletion_window_in_days  = 10
   customer_master_key_spec = "SYMMETRIC_DEFAULT"
   enable_key_rotation      = true
   multi_region             = true
-  policy = jsonencode({
-    "Id" : "key-for-rds",
-    "Version" : "2012-10-17",
-    "Statement" : [
-      {
-        "Sid" : "Enable IAM User Permissions",
-        "Effect" : "Allow",
-        "Principal" : {
-          "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.id}:root"
+  policy = jsonencode(
+
+    {
+      "Id" : "key-for-rds",
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Sid" : "Enable IAM User Permissions",
+          "Effect" : "Allow",
+          "Principal" : {
+            "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.id}:root"
+          },
+          "Action" : "kms:*",
+          "Resource" : "*"
         },
-        "Action" : "kms:*",
-        "Resource" : "arn:aws:rds:${var.region}:${data.aws_caller_identity.current.id}:db/*"
-      },
-      {
-        "Sid" : "Allow use of the key",
-        "Effect" : "Allow",
-        "Principal" : {
-          "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.id}:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS"
+        {
+          "Sid" : "Allow use of the key",
+          "Effect" : "Allow",
+          "Principal" : {
+            "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.id}:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS"
+          },
+          "Action" : [
+            "kms:Encrypt",
+            "kms:Decrypt",
+            "kms:ReEncrypt*",
+            "kms:GenerateDataKey*",
+            "kms:DescribeKey"
+          ],
+          "Resource" : "*"
         },
-        "Action" : [
-          "kms:Encrypt",
-          "kms:Decrypt",
-          "kms:ReEncrypt*",
-          "kms:GenerateDataKey*",
-          "kms:DescribeKey"
-        ],
-        "Resource" : "arn:aws:rds:${var.region}:${data.aws_caller_identity.current.id}:db/*"
-      },
-      {
-        "Sid" : "Allow attachment of persistent resources",
-        "Effect" : "Allow",
-        "Principal" : {
-          "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.id}:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS"
-        },
-        "Action" : [
-          "kms:CreateGrant",
-          "kms:ListGrants",
-          "kms:RevokeGrant"
-        ],
-        "Resource" : "arn:aws:rds:${var.region}:${data.aws_caller_identity.current.id}:db/*",
-        "Condition" : {
-          "Bool" : {
-            "kms:GrantIsForAWSResource" : "true"
+        {
+          "Sid" : "Allow attachment of persistent resources",
+          "Effect" : "Allow",
+          "Principal" : {
+            "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.id}:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS"
+          },
+          "Action" : [
+            "kms:CreateGrant",
+            "kms:ListGrants",
+            "kms:RevokeGrant"
+          ],
+          "Resource" : "*",
+          "Condition" : {
+            "Bool" : {
+              "kms:GrantIsForAWSResource" : "true"
+            }
           }
         }
-      }
-    ]
-  })
+      ]
+    }
+
+  )
 }
 
 resource "aws_db_instance" "database" {

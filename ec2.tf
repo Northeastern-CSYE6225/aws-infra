@@ -85,7 +85,7 @@ resource "aws_kms_key" "ebs" {
         "Sid" : "Allow access for Key Administrators",
         "Effect" : "Allow",
         "Principal" : {
-          "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.id}:root"
+          "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.id}:AWSServiceRoleForAutoScaling"
         },
         "Action" : [
           "kms:Create*",
